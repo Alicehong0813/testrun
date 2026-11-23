@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>試運轉工作日誌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* VOICE: plain, practical site paperwork
+   IDEA: a printed field log sheet on a clipboard, ruled and numbered
+   PICTURE: the form itself; time entries as ruled rows with photo slots
+   COLOUR and TYPE: white paper, dark ink, safety orange accent; Noto Sans TC, mono for times
+   LAYOUT: one calm column, max 980px, rows stack on phones */
+:root{color-scheme:light dark;
+  --bg:light-dark(#eef0f2,#121417);--paper:light-dark(#ffffff,#1b1e22);--ink:light-dark(#1b1f24,#e9ebee);
+  --mute:light-dark(#5d6670,#9aa3ad);--rule:light-dark(#d5d9de,#343a41);--soft:light-dark(#f6f7f8,#22262b);
+  --acc:light-dark(#d9480f,#ff7a3d);--accsoft:light-dark(#fff1e8,#3a2216);--bad:light-dark(#c92a2a,#ff8787)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans TC",system-ui,sans-serif;overflow-x:clip}
+.sheet{max-width:980px;margin:clamp(12px,3vw,40px) auto;background:var(--paper);border:1px solid var(--rule);border-top:6px solid var(--acc);padding:clamp(18px,3.5vw,44px)}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px;border-bottom:2px solid var(--ink);padding-bottom:14px}
+h1{font-size:clamp(28px,4.5vw,40px);line-height:1.05;margin:0;font-weight:700;letter-spacing:.02em}
+.sub{color:var(--mute);font-size:14px;margin-top:6px}
+.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;margin:22px 0 8px}
+label.f{display:block;font-size:14px;color:var(--mute);font-weight:500;margin-bottom:4px}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:9px 11px;min-height:44px;width:100%}
+textarea{min-height:120px;resize:vertical;line-height:1.6}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:1px;border-color:var(--acc)}
+h2{font-size:20px;margin:30px 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 small{font-size:14px;color:var(--mute);font-weight:400}
+.entries{border-top:1px solid var(--ink)}
+.row{display:grid;grid-template-columns:34px 1.35fr 1fr 1fr 1fr 44px;gap:10px 14px;align-items:start;padding:14px 0;border-bottom:1px solid var(--rule)}
+.head{padding:8px 0;font-size:14px;color:var(--mute);font-weight:500;border-bottom:1px solid var(--rule)}
+.no{font:500 15px "IBM Plex Mono",monospace;color:var(--acc);padding-top:11px}
+.time{display:flex;align-items:center;gap:6px}
+.time select{flex:1;font-family:"IBM Plex Mono",monospace;padding-inline:8px}
+.dur{font-size:13px;color:var(--mute);margin-top:4px;white-space:nowrap}
+.dur.err{color:var(--bad)}
+.ph{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;border:1.5px dashed var(--rule);border-radius:8px;background:var(--soft);color:var(--mute);font-size:14px;cursor:pointer;overflow:hidden;text-align:center;padding:6px}
+.ph:hover{border-color:var(--acc);color:var(--acc)}
+.ph input{position:absolute;inset:0;opacity:0;cursor:pointer;min-height:0}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph .x{position:absolute;top:4px;right:4px;z-index:2;width:30px;height:30px;min-height:0;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;cursor:pointer;line-height:1}
+.ph.has{border-style:solid;cursor:default}
+.phs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.phs .ph:only-child{grid-column:1/-1}
+.ph.more{aspect-ratio:auto;min-height:44px;grid-column:1/-1}
+.ph small{font-size:12px}
+.cnt{position:absolute;left:4px;bottom:4px;z-index:2;background:rgba(0,0,0,.6);color:#fff;font:500 12px "IBM Plex Mono",monospace;padding:1px 6px;border-radius:4px}
+.lbl{display:none}
+button{font:inherit;cursor:pointer;min-height:44px;border-radius:6px}
+.del{background:none;border:1px solid transparent;color:var(--mute);font-size:20px;width:44px}
+.del:hover{color:var(--bad);border-color:var(--rule)}
+.add{margin-top:12px;width:100%;background:var(--accsoft);color:var(--acc);border:1.5px dashed var(--acc);font-weight:700}
+.add:hover{background:var(--acc);color:#fff}
+.total{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;font-size:15px;color:var(--mute)}
+.total b{color:var(--ink);font-family:"IBM Plex Mono",monospace}
+.sign{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 20px;margin-top:8px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;padding-top:18px;border-top:2px solid var(--ink)}
+.bar button{padding:0 18px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font-weight:500}
+.bar .pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.bar .ghost{margin-left:auto;color:var(--bad)}
+.status{font-size:13px;color:var(--mute);align-self:center}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+.dlg.on{display:flex}
+.dlg div{background:var(--paper);border-radius:10px;padding:22px;max-width:380px;width:100%}
+.dlg p{margin:0 0 16px}
+.dlg .acts{display:flex;gap:10px;justify-content:flex-end}
+.dlg button{padding:0 16px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlg .warn{background:var(--bad);border-color:var(--bad);color:#fff}
+@media(max-width:720px){
+  .head{display:none}
+  .row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);position:relative}
+  .no{grid-column:1/-1;padding:0}
+  .row>.c-time,.row>.c-code{grid-column:1/-1}
+  .lbl{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+  .del{position:absolute;top:6px;right:0}
+  .meta,.sign{grid-template-columns:minmax(0,1fr)}
+  .bar .ghost{margin-left:0}
+}
+@media(max-width:520px){
+  .sheet{margin:0;border-left:0;border-right:0;padding:18px 14px 8px}
+  .row>div:has(.phs){grid-column:1/-1}
+  .phs{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .phs .ph:only-child{aspect-ratio:16/7}
+  .bar{position:sticky;bottom:0;z-index:5;background:var(--paper);margin:24px -14px 0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -4px 12px rgba(0,0,0,.08)}
+  .bar button{flex:1 1 auto;padding:0 10px}
+  .bar .status{order:9;flex-basis:100%;text-align:center}
+}
+@media(pointer:coarse){.ph .x{width:36px;height:36px;font-size:18px}}
+@page{size:A4;margin:12mm}
+@media print{
+  body{background:#fff}.sheet{border:0;margin:0;padding:0}
+  .bar,.add,.del,.ph .x,.dlg{display:none!important}
+  .row{break-inside:avoid}
+  .ph.more,.dur:not(.err){display:none!important}
+  .addph span{visibility:hidden}
+  .status{display:none}
+  ::placeholder{color:transparent!important}
+  textarea{resize:none}
+  input,select,textarea{border:0;border-bottom:1px solid #999;border-radius:0;padding:4px 0;appearance:none}
+}
+@media(prefers-reduced-motion:no-preference){.row.new{animation:in .25s ease-out}@keyframes in{from{background:var(--accsoft)}}}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <div>
+      <h1>試運轉工作日誌</h1>
+      <div class="sub">操作時間採 24 小時制，以 30 分鐘為一單位</div>
+    </div>
+  </header>
+
+  <div class="meta">
+    <div><label class="f" for="date">日期</label><input type="date" id="date"></div>
+    <div><label class="f" for="week">星期</label><input id="week" readonly tabindex="-1" placeholder="選擇日期後自動帶入"></div>
+  </div>
+
+  <h2>操作紀錄 <small>每筆填寫操作時段、料種代碼與處理前後照片</small></h2>
+  <div class="entries">
+    <div class="row head"><span>#</span><span>操作時間</span><span>操作料種代碼</span><span>處理前照片</span><span>處理後照片</span><span></span></div>
+    <div id="list"></div>
+  </div>
+  <button class="add" id="add" type="button">＋ 新增一筆操作紀錄</button>
+  <div class="total">合計操作時數 <b id="sum">0 小時</b></div>
+  <datalist id="codes"></datalist>
+
+  <h2>備註說明</h2>
+  <textarea id="note" placeholder="異常狀況、停機原因、參數調整等"></textarea>
+
+  <h2>建議事項</h2>
+  <textarea id="advice" placeholder="設備、操作流程或料種處理之改善建議"></textarea>
+
+  <h2>填表人</h2>
+  <div class="sign">
+    <div><label class="f" for="who">姓名</label><input id="who" autocomplete="name"></div>
+    <div><label class="f" for="signed">填表時間</label><input type="datetime-local" id="signed"></div>
+  </div>
+
+  <div class="bar">
+    <button class="pri" id="copy" type="button">複製文字紀錄</button>
+    <button id="print" type="button">列印／存成 PDF</button>
+    <span class="status" id="status" aria-live="polite"></span>
+    <button class="ghost" id="clear" type="button">清空表單</button>
+  </div>
+</main>
+
+<div class="dlg" id="dlg" role="dialog" aria-modal="true"><div>
+  <p id="dlgMsg"></p>
+  <div class="acts"><button id="dlgNo" type="button">取消</button><button class="warn" id="dlgOk" type="button">確定</button></div>
+</div></div>
+
+<script>
+{
+const KEY='trial-log-v1';
+const T=[...Array(49)].map((_,i)=>String(i>>1).padStart(2,'0')+':'+(i%2?'30':'00'));
+const WEEK='日一二三四五六';
+const $=s=>document.querySelector(s);
+const list=$('#list');
+let rows=[];
+let seq=0;
+
+const blank=()=>{const last=rows[rows.length-1];const s=last?Math.min(last.e,47):16;return{id:++seq,s,e:Math.min(s+1,48),code:'',before:[],after:[]}};
+const opts=(from,to,sel)=>{let h='';for(let i=from;i<=to;i++)h+=`<option value="${i}"${i===sel?' selected':''}>${T[i]}</option>`;return h};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hrs=r=>(r.e-r.s)/2;
+const photo=(r,k,label)=>`<div><span class="lbl">${label}</span><div class="phs">
+  ${r[k].map((u,j)=>`<div class="ph has"><img src="${u}" alt="${label} ${j+1}"><span class="cnt">${j+1}</span><button class="x" type="button" data-rm="${k}" data-i="${j}" aria-label="移除${label}第 ${j+1} 張">×</button></div>`).join('')}
+  <label class="ph addph${r[k].length?' more':''}"><span>${r[k].length?'＋ 加入':'拍照或上傳<br>'+label+'<br><small>可多選</small>'}</span>
+  <input type="file" accept="image/*" multiple data-f="${k}" aria-label="上傳${label}（可多張）"></label></div>
+  ${r[k].length?`<div class="dur">${r[k].length} 張</div>`:''}</div>`;
+
+function render(focusNew){
+  list.innerHTML=rows.map((r,i)=>{const bad=r.e<=r.s;return`<div class="row${focusNew&&i===rows.length-1?' new':''}" data-id="${r.id}">
+    <span class="no">${String(i+1).padStart(2,'0')}</span>
+    <div class="c-time"><span class="lbl">操作時間</span><div class="time">
+      <select data-v="s" aria-label="開始時間">${opts(0,47,r.s)}</select><span>至</span>
+      <select data-v="e" aria-label="結束時間">${opts(1,48,r.e)}</select></div>
+      <div class="dur${bad?' err':''}">${bad?'結束時間需晚於開始時間':hrs(r)+' 小時（'+(r.e-r.s)+' 單位）'}</div></div>
+    <div class="c-code"><span class="lbl">操作料種代碼</span><input data-v="code" list="codes" value="${esc(r.code)}" placeholder="例：A-01"></div>
+    ${photo(r,'before','處理前照片')}${photo(r,'after','處理後照片')}
+    <button class="del" type="button" data-del aria-label="刪除第 ${i+1} 筆">✕</button></div>`}).join('');
+  if(focusNew)list.lastElementChild?.querySelector('[data-v=code]')?.focus();
+  totals();
+}
+function totals(){
+  const t=rows.reduce((a,r)=>a+(r.e>r.s?hrs(r):0),0);
+  $('#sum').textContent=t+' 小時';
+  const codes=[...new Set(rows.map(r=>r.code.trim()).filter(Boolean))];
+  $('#codes').innerHTML=codes.map(c=>`<option value="${esc(c)}">`).join('');
+}
+const find=el=>rows.find(r=>r.id===+el.closest('.row').dataset.id);
+
+list.addEventListener('change',e=>{
+  const t=e.target,r=find(t);if(!r)return;
+  if(t.dataset.v==='s'||t.dataset.v==='e'){r[t.dataset.v]=+t.value;if(t.dataset.v==='s'&&r.e<=r.s)r.e=Math.min(r.s+1,48);render();save()}
+  if(t.dataset.f){const fs=[...t.files];if(!fs.length)return;msg('照片處理中…');Promise.all(fs.map(shrink)).then(us=>{r[t.dataset.f].push(...us.filter(Boolean));render();save()})}
+});
+list.addEventListener('input',e=>{const t=e.target;if(t.dataset.v==='code'){find(t).code=t.value;save()}});
+list.addEventListener('focusout',e=>{if(e.target.dataset.v==='code')totals()});
+list.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.rm){e.preventDefault();find(t)[t.dataset.rm].splice(+t.dataset.i,1);render();save()}
+  if(t.closest('[data-del]')){const r=find(t);ask(`刪除第 ${rows.indexOf(r)+1} 筆紀錄？`,()=>{rows=rows.filter(x=>x!==r);if(!rows.length)rows.push(blank());render();save()})}
+});
+$('#add').onclick=()=>{rows.push(blank());render(true);save()};
+
+function shrink(file){return new Promise(res=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const m=1280,k=Math.min(1,m/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*k;c.height=img.height*k;c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.82))};img.onerror=()=>{URL.revokeObjectURL(u);res('')};img.src=u})}
+
+const fields=['date','note','advice','who','signed'];
+function week(){const v=$('#date').value;$('#week').value=v?'星期'+WEEK[new Date(v+'T00:00').getDay()]:''}
+fields.forEach(f=>$('#'+f).addEventListener('input',()=>{if(f==='date')week();save()}));
+
+/* drafts live in IndexedDB (large enough for photos); localStorage is the fallback for text */
+let dbp=null;
+function db(){if(!dbp)dbp=new Promise((res,rej)=>{try{const q=indexedDB.open('trial-log',1);q.onupgradeneeded=()=>q.result.createObjectStore('d');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}});return dbp}
+async function idb(mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction('d',mode),st=t.objectStore('d'),q=fn(st);t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)})}
+let timer;
+function save(){clearTimeout(timer);timer=setTimeout(async()=>{
+  const d={rows,seq};fields.forEach(f=>d[f]=$('#'+f).value);
+  try{await idb('readwrite',st=>st.put(d,KEY));msg('已自動儲存草稿')}
+  catch(_){try{localStorage.setItem(KEY,JSON.stringify({...d,rows:rows.map(r=>({...r,before:[],after:[]}))}));msg('文字已儲存；照片未能存入草稿')}catch(__){msg('')}}
+},400)}
+async function load(){let d=null;
+  try{d=await idb('readonly',st=>st.get(KEY))}catch(_){}
+  if(!d){try{d=JSON.parse(localStorage.getItem(KEY)||'null')}catch(_){}}
+  try{if(d){rows=(d.rows||[]).map(r=>({...r,before:[].concat(r.before||[]).filter(Boolean),after:[].concat(r.after||[]).filter(Boolean)}));seq=d.seq||rows.length;fields.forEach(f=>$('#'+f).value=d[f]||'')}}catch(_){}
+  if(!rows.length)rows.push(blank());
+  if(!$('#date').value)$('#date').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  week();render()}
+let mt;function msg(s){$('#status').textContent=s;clearTimeout(mt);mt=setTimeout(()=>$('#status').textContent='',3000)}
+
+let onOk=null;
+function ask(text,fn){$('#dlgMsg').textContent=text;onOk=fn;$('#dlg').classList.add('on');$('#dlgOk').focus()}
+const close=()=>{$('#dlg').classList.remove('on');onOk=null};
+$('#dlgNo').onclick=close;$('#dlgOk').onclick=()=>{const f=onOk;close();f&&f()};
+$('#dlg').addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+
+$('#clear').onclick=()=>ask('清空整份表單（含照片）？此動作無法復原。',()=>{rows=[];seq=0;fields.forEach(f=>$('#'+f).value='');try{localStorage.removeItem(KEY)}catch(_){}idb('readwrite',st=>st.delete(KEY)).catch(()=>{});load();msg('表單已清空')});
+
+$('#copy').onclick=async()=>{
+  const L=[`試運轉工作日誌`,`日期：${$('#date').value} ${$('#week').value}`,'','【操作紀錄】'];
+  rows.forEach((r,i)=>L.push(`${i+1}. ${T[r.s]}–${T[r.e]}（${hrs(r)} 小時）料種代碼：${r.code||'—'}　處理前照片：${r.before.length} 張　處理後照片：${r.after.length} 張`));
+  L.push(`合計：${$('#sum').textContent}`,'','【備註說明】',$('#note').value||'—','','【建議事項】',$('#advice').value||'—','',`填表人：${$('#who').value||'—'}　${$('#signed').value.replace('T',' ')}`);
+  try{await navigator.clipboard.writeText(L.join('\n'));msg('已複製到剪貼簿')}catch(_){msg('無法複製，請手動選取')}
+};
+$('#print').onclick=()=>{try{window.print()}catch(_){msg('請按 Ctrl+P（Mac：⌘P）列印')}};
+
+load();
+}
+</script>
+</body>
+</html>
